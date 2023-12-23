@@ -1,0 +1,11 @@
+[package]
+name = "nigiri-sys"
+version = "0.1.0"
+edition = "2021"
+links = "nigiri"
+build = "build.rs"
+
+[dependencies]
+
+[dev-dependencies]
+chrono = "0.4.31"

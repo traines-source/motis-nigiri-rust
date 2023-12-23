@@ -1,0 +1,8 @@
+[package]
+name = "motis-nigiri"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+nigiri-sys = { path = "nigiri-sys", version = "0.1.0" }
+chrono = "0.4.31"
