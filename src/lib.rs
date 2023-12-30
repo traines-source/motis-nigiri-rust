@@ -17,6 +17,17 @@ impl Timetable {
             }
         }
     }
+
+    pub fn get_stops(&self) -> Stops {
+        unsafe {
+            Stops {
+                t: self,
+                i: 0,
+                n_stops: nigiri_get_stop_count(self.t).try_into().unwrap()
+            }
+        }
+    }
+
     pub fn get_transports(&self) -> Transports {
         unsafe {
             Transports {
@@ -26,6 +37,7 @@ impl Timetable {
             }
         }
     }
+
     pub fn get_connections(&self) -> Connections {
         let transports = self.get_transports();
         Connections {
@@ -49,9 +61,9 @@ impl Timetable {
         }
     }
 
-    pub fn get_stop(&self, stop_idx: u32) -> Stop {
+    pub fn get_stop(&self, stop_idx: usize) -> Stop {
         unsafe {
-            let raw_stop = nigiri_get_stop(self.t, stop_idx);
+            let raw_stop = nigiri_get_stop(self.t, stop_idx.try_into().unwrap());
             Stop {
                 ptr: raw_stop,
                 id: CStr::from_ptr((*raw_stop).id).to_str().unwrap(),
@@ -84,6 +96,25 @@ impl<'a> Drop for Stop<'a> {
         unsafe {
             nigiri_destroy_stop(self.ptr);
         }
+    }
+}
+
+pub struct Stops<'a> {
+    t: &'a Timetable,
+    i: usize,
+    n_stops: usize
+}
+
+impl<'a> Iterator for Stops<'a> {
+    type Item = Stop<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.i >= self.n_stops {
+            return None
+        }
+        let stop = self.t.get_stop(self.i);
+        self.i += 1;
+        Some(stop)
     }
 }
 
@@ -147,8 +178,8 @@ impl<'a> Iterator for Transports<'a> {
 pub struct Connection {
 	pub route_idx: u32,
 	pub trip_id: u32,
-	pub from_idx: u32,
-	pub to_idx: u32,
+	pub from_idx: usize,
+	pub to_idx: usize,
 	pub departure: i32,
 	pub arrival: i32,
 }
@@ -185,8 +216,8 @@ impl<'a> Iterator for Connections<'a> {
         let c = Connection {
             route_idx: transport.route_idx,
             trip_id: self.transports.i,
-            from_idx: route.stops[self.i],
-            to_idx: route.stops[self.i+1],
+            from_idx: route.stops[self.i].try_into().unwrap(),
+            to_idx: route.stops[self.i+1].try_into().unwrap(),
             departure: transport.event_mams[self.i*2] as i32,
             arrival: transport.event_mams[self.i*2+1] as i32
         };

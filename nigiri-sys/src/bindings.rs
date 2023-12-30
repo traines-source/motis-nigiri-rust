@@ -440,6 +440,9 @@ extern "C" {
     pub fn nigiri_destroy_route(route: *const nigiri_route_t);
 }
 extern "C" {
+    pub fn nigiri_get_stop_count(t: *const nigiri_timetable_t) -> u32;
+}
+extern "C" {
     pub fn nigiri_get_stop(t: *const nigiri_timetable_t, idx: u32) -> *mut nigiri_stop_t;
 }
 extern "C" {

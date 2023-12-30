@@ -11,6 +11,15 @@ pub fn it_works() {
         let t = nigiri_load(path.as_ptr(), chrono::DateTime::parse_from_rfc3339("2018-12-09T00:00:00-00:00").unwrap().timestamp(), chrono::DateTime::parse_from_rfc3339("2019-12-09T00:00:00-00:00").unwrap().timestamp());
         let count = nigiri_get_transport_count(t);
         assert_eq!(count, 12);
+        let stop_count = nigiri_get_stop_count(t);
+        assert_eq!(stop_count, 90);
+        let s0 = nigiri_get_stop(t, 0);
+        assert_eq!(CStr::from_ptr((*s0).name).to_str().unwrap(), "START");
+        let s0 = nigiri_get_stop(t, 9);
+        assert_eq!(CStr::from_ptr((*s0).name).to_str().unwrap(), "Zürich HB");
+        let s0 = nigiri_get_stop(t, stop_count-2);
+        assert_eq!(CStr::from_ptr((*s0).name).to_str().unwrap(), "Sion");
+
         for i in 0..count {
             let transport = nigiri_get_transport(t, i);
             let transport_name = CStr::from_ptr((*transport).name).to_str().unwrap();
