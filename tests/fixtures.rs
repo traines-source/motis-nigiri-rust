@@ -3,7 +3,7 @@ use chrono;
 
 #[test]
 pub fn it_works() {
-    let t = Timetable::load("./nigiri-sys/tests/fixtures/gtfs_minimal_swiss/", chrono::NaiveDate::from_ymd_opt(2018, 12, 9).unwrap(), chrono::NaiveDate::from_ymd_opt(2019, 12, 9).unwrap());
+    let t = Timetable::load("./nigiri-sys/tests/fixtures/gtfs_minimal_swiss/", chrono::NaiveDate::from_ymd_opt(2023, 12, 9).unwrap(), chrono::NaiveDate::from_ymd_opt(2024, 12, 9).unwrap());
     
     let mut i = 0;
     let connections = t.get_connections();
@@ -34,4 +34,7 @@ pub fn it_works() {
     for s in t.get_stops() {
         assert!(s.id.len() > 0);
     }
+
+    t.update_with_rt("./nigiri-sys/tests/fixtures/2024-01-02T01_48_02+01_00.gtfsrt", |evt| println!("{:?}", evt)).unwrap();
+    panic!()
 }

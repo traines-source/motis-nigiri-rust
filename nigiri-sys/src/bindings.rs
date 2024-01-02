@@ -95,6 +95,9 @@ pub const SIG_ATOMIC_MAX: u32 = 2147483647;
 pub const SIZE_MAX: i32 = -1;
 pub const WINT_MIN: u32 = 0;
 pub const WINT_MAX: u32 = 4294967295;
+pub const __bool_true_false_are_defined: u32 = 1;
+pub const true_: u32 = 1;
+pub const false_: u32 = 0;
 pub type __u_char = ::std::os::raw::c_uchar;
 pub type __u_short = ::std::os::raw::c_ushort;
 pub type __u_int = ::std::os::raw::c_uint;
@@ -414,6 +417,92 @@ fn bindgen_test_layout_nigiri_route() {
     );
 }
 pub type nigiri_route_t = nigiri_route;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct nigiri_event_change {
+    pub transport_idx: u32,
+    pub day: u16,
+    pub stop_idx: u32,
+    pub is_departure: bool,
+    pub delay: i16,
+    pub cancelled: bool,
+}
+#[test]
+fn bindgen_test_layout_nigiri_event_change() {
+    const UNINIT: ::std::mem::MaybeUninit<nigiri_event_change> = ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<nigiri_event_change>(),
+        20usize,
+        concat!("Size of: ", stringify!(nigiri_event_change))
+    );
+    assert_eq!(
+        ::std::mem::align_of::<nigiri_event_change>(),
+        4usize,
+        concat!("Alignment of ", stringify!(nigiri_event_change))
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).transport_idx) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(nigiri_event_change),
+            "::",
+            stringify!(transport_idx)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).day) as usize - ptr as usize },
+        4usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(nigiri_event_change),
+            "::",
+            stringify!(day)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).stop_idx) as usize - ptr as usize },
+        8usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(nigiri_event_change),
+            "::",
+            stringify!(stop_idx)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).is_departure) as usize - ptr as usize },
+        12usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(nigiri_event_change),
+            "::",
+            stringify!(is_departure)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).delay) as usize - ptr as usize },
+        14usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(nigiri_event_change),
+            "::",
+            stringify!(delay)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).cancelled) as usize - ptr as usize },
+        16usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(nigiri_event_change),
+            "::",
+            stringify!(cancelled)
+        )
+    );
+}
+pub type nigiri_event_change_t = nigiri_event_change;
 extern "C" {
     pub fn nigiri_load(
         path: *const ::std::os::raw::c_char,
@@ -429,6 +518,9 @@ extern "C" {
 }
 extern "C" {
     pub fn nigiri_get_transport(t: *const nigiri_timetable_t, idx: u32) -> *mut nigiri_transport_t;
+}
+extern "C" {
+    pub fn nigiri_is_transport_active(transport: *const nigiri_transport_t, day: u16) -> bool;
 }
 extern "C" {
     pub fn nigiri_destroy_transport(transport: *const nigiri_transport_t);
@@ -449,5 +541,9 @@ extern "C" {
     pub fn nigiri_destroy_stop(stop: *const nigiri_stop_t);
 }
 extern "C" {
-    pub fn update_with_rt(t: *mut nigiri_timetable_t);
+    pub fn nigiri_update_with_rt(
+        t: *const nigiri_timetable_t,
+        gtfsrt_pb_path: *const ::std::os::raw::c_char,
+        callback: ::std::option::Option<unsafe extern "C" fn(arg1: nigiri_event_change_t)>,
+    );
 }

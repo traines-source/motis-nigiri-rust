@@ -3,6 +3,24 @@ use std::ffi::CStr;
 use std::ffi::CString;
 use chrono;
 
+static mut TIMETABLE_UPDATING: Option<fn(evt: EventChange)> = None;
+
+extern "C" fn nigiri_callback(evt: nigiri_event_change) {
+    unsafe {
+        if TIMETABLE_UPDATING.is_some() {
+            let c = TIMETABLE_UPDATING.unwrap();
+            c(EventChange {
+                    transport_idx: evt.transport_idx,
+                    day: evt.day,
+                    stop_idx: evt.stop_idx,
+                    is_departure: evt.is_departure,
+                    delay: evt.delay,
+                    cancelled: evt.cancelled,
+            });
+        }
+    } 
+}
+
 pub struct Timetable {
     t: *const nigiri_timetable_t
 }
@@ -16,6 +34,19 @@ impl Timetable {
                 t: t
             }
         }
+    }
+
+    pub fn update_with_rt(&self, path: &str, callback: fn(evt: EventChange)) -> Result<(), &'static str> {
+        unsafe {
+            if TIMETABLE_UPDATING.is_some() {
+                return Err("only one timetable can be updated at a time");
+            }
+            TIMETABLE_UPDATING = Some(callback);
+            let path = CString::new(path).unwrap();
+            nigiri_update_with_rt(self.t, path.as_ptr(), Some(nigiri_callback));
+            TIMETABLE_UPDATING = None;
+            Ok(())
+        }   
     }
 
     pub fn get_stops(&self) -> Stops {
@@ -224,4 +255,14 @@ impl<'a> Iterator for Connections<'a> {
         self.i += 1;
         Some(c)
     }
+}
+
+#[derive(Debug)]
+pub struct EventChange {
+    pub transport_idx: u32,
+    pub day: u16,
+    pub stop_idx: u32,
+    pub is_departure: bool,
+    pub delay: i16,
+    pub cancelled: bool,
 }

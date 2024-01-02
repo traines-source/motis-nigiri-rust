@@ -4,11 +4,15 @@ use std::ffi::CString;
 use nigiri_sys::*;
 use chrono;
 
+extern "C" fn my_callback(evt: nigiri_event_change) {
+    println!("{:?}", evt);
+}
+
 #[test]
 pub fn it_works() {
     unsafe {
-        let path = CString::new("./tests/fixtures/gtfs_minimal_swiss/").unwrap();
-        let t = nigiri_load(path.as_ptr(), chrono::DateTime::parse_from_rfc3339("2018-12-09T00:00:00-00:00").unwrap().timestamp(), chrono::DateTime::parse_from_rfc3339("2019-12-09T00:00:00-00:00").unwrap().timestamp());
+        let gtfs_path = CString::new("./tests/fixtures/gtfs_minimal_swiss/").unwrap();
+        let t = nigiri_load(gtfs_path.as_ptr(), chrono::DateTime::parse_from_rfc3339("2024-01-01T00:00:00-00:00").unwrap().timestamp(), chrono::DateTime::parse_from_rfc3339("2024-12-09T00:00:00-00:00").unwrap().timestamp());
         let count = nigiri_get_transport_count(t);
         assert_eq!(count, 12);
         let stop_count = nigiri_get_stop_count(t);
@@ -45,6 +49,9 @@ pub fn it_works() {
             nigiri_destroy_route(route);
             nigiri_destroy_transport(transport);
         }
+        let gtfsrt_path = CString::new("./tests/fixtures/2024-01-02T01_48_02+01_00.gtfsrt").unwrap();
+        nigiri_update_with_rt(t, gtfsrt_path.as_ptr(), Some(my_callback));
+        nigiri_update_with_rt(t, gtfsrt_path.as_ptr(), Some(my_callback));
         nigiri_destroy(t);
     }
 }
