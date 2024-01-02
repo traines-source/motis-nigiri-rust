@@ -421,7 +421,7 @@ pub type nigiri_route_t = nigiri_route;
 #[derive(Debug, Copy, Clone)]
 pub struct nigiri_event_change {
     pub transport_idx: u32,
-    pub day: u16,
+    pub day_idx: u16,
     pub stop_idx: u32,
     pub is_departure: bool,
     pub delay: i16,
@@ -452,13 +452,13 @@ fn bindgen_test_layout_nigiri_event_change() {
         )
     );
     assert_eq!(
-        unsafe { ::std::ptr::addr_of!((*ptr).day) as usize - ptr as usize },
+        unsafe { ::std::ptr::addr_of!((*ptr).day_idx) as usize - ptr as usize },
         4usize,
         concat!(
             "Offset of field: ",
             stringify!(nigiri_event_change),
             "::",
-            stringify!(day)
+            stringify!(day_idx)
         )
     );
     assert_eq!(
@@ -514,16 +514,26 @@ extern "C" {
     pub fn nigiri_destroy(t: *const nigiri_timetable_t);
 }
 extern "C" {
+    pub fn nigiri_get_start_day_ts(t: *const nigiri_timetable_t) -> i64;
+}
+extern "C" {
+    pub fn nigiri_get_day_count(t: *const nigiri_timetable_t) -> u16;
+}
+extern "C" {
     pub fn nigiri_get_transport_count(t: *const nigiri_timetable_t) -> u32;
 }
 extern "C" {
     pub fn nigiri_get_transport(t: *const nigiri_timetable_t, idx: u32) -> *mut nigiri_transport_t;
 }
 extern "C" {
-    pub fn nigiri_is_transport_active(transport: *const nigiri_transport_t, day: u16) -> bool;
+    pub fn nigiri_destroy_transport(transport: *const nigiri_transport_t);
 }
 extern "C" {
-    pub fn nigiri_destroy_transport(transport: *const nigiri_transport_t);
+    pub fn nigiri_is_transport_active(
+        t: *const nigiri_timetable_t,
+        transport_idx: u32,
+        day_idx: u16,
+    ) -> bool;
 }
 extern "C" {
     pub fn nigiri_get_route(t: *const nigiri_timetable_t, idx: u32) -> *mut nigiri_route_t;

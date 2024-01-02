@@ -11,7 +11,7 @@ extern "C" fn nigiri_callback(evt: nigiri_event_change) {
             let c = TIMETABLE_UPDATING.unwrap();
             c(EventChange {
                     transport_idx: evt.transport_idx,
-                    day: evt.day,
+                    day: evt.day_idx,
                     stop_idx: evt.stop_idx,
                     is_departure: evt.is_departure,
                     delay: evt.delay,
@@ -71,11 +71,18 @@ impl Timetable {
 
     pub fn get_connections(&self) -> Connections {
         let transports = self.get_transports();
+        let n_days;
+        unsafe {
+            n_days = nigiri_get_day_count(self.t);
+        }
         Connections {
             t: self,
+            n_days: n_days,
+            transport_idx: 0,
             transports: transports,
             transport: None,
-            i: 0
+            i: 0,
+            day_idx: 0
         }
     }
 
@@ -102,6 +109,12 @@ impl Timetable {
                 lat: (*raw_stop).lat as f32,
                 lon: (*raw_stop).lon as f32
             }
+        }
+    }
+
+    pub fn is_transport_active(&self, transport_idx: usize, day_idx: u16) -> bool {
+        unsafe {
+            nigiri_is_transport_active(self.t, transport_idx.try_into().unwrap(), day_idx)
         }
     }
 }
@@ -217,9 +230,25 @@ pub struct Connection {
 
 pub struct Connections<'a> {
     t: &'a Timetable,
+    n_days: u16,
+    transport_idx: usize,
     transports: Transports<'a>,
     transport: Option<Transport>,
+    day_idx: u16,
     i: usize
+}
+
+impl<'a> Connections<'a> {
+    fn get_minutes_after_base(day_idx: u16, mam: i16) -> i32 {
+        day_idx as i32*1440+mam as i32
+    }
+
+    fn next_active_day_idx(&mut self) {
+        while self.day_idx < self.n_days && !self.t.is_transport_active(self.transport_idx, self.day_idx) {
+            println!("weird {} {}", self.n_days, self.day_idx);
+            self.day_idx += 1;
+        }
+    }
 }
 
 impl<'a> Iterator for Connections<'a> {
@@ -231,26 +260,36 @@ impl<'a> Iterator for Connections<'a> {
             if self.transport.is_none() {
                 return None
             }
+            self.next_active_day_idx();
         }
         let route = self.t.get_route(self.transport.as_ref().unwrap().route_idx);
         if self.i >= route.stops.len()-1 {
+            self.i = 0;
+            self.day_idx += 1;
+            self.next_active_day_idx();
+        }
+
+        if self.day_idx >= self.n_days { 
             self.transport = match self.transports.next() {
                 Some(t) => {
                     self.i = 0;
+                    self.day_idx = 0;
+                    self.next_active_day_idx();
+                    self.transport_idx += 1;
                     Some(t)
                 },
                 None => return None
             }
         }
         let transport = self.transport.as_ref().unwrap();
-        //TODO bitfield, mam, route
+        //TODO route
         let c = Connection {
             route_idx: transport.route_idx,
             trip_id: self.transports.i,
             from_idx: route.stops[self.i].try_into().unwrap(),
             to_idx: route.stops[self.i+1].try_into().unwrap(),
-            departure: transport.event_mams[self.i*2] as i32,
-            arrival: transport.event_mams[self.i*2+1] as i32
+            departure: Connections::get_minutes_after_base(self.day_idx, transport.event_mams[self.i*2]),
+            arrival: Connections::get_minutes_after_base(self.day_idx, transport.event_mams[self.i*2+1])
         };
         self.i += 1;
         Some(c)

@@ -24,6 +24,9 @@ pub fn it_works() {
         let s0 = nigiri_get_stop(t, stop_count-2);
         assert_eq!(CStr::from_ptr((*s0).name).to_str().unwrap(), "Sion");
 
+        assert_eq!(nigiri_get_start_day_ts(t), chrono::DateTime::parse_from_rfc3339("2023-12-27T00:00:00-00:00").unwrap().timestamp());
+        assert_eq!(nigiri_get_day_count(t), 349);
+
         for i in 0..count {
             let transport = nigiri_get_transport(t, i);
             let transport_name = CStr::from_ptr((*transport).name).to_str().unwrap();
@@ -42,6 +45,14 @@ pub fn it_works() {
                 assert_eq!(event_mams[0], 0);
                 assert_eq!(event_mams[1], 2);
                 assert_eq!(event_mams[2], 2);
+                assert_eq!(nigiri_is_transport_active(t, i, 4), false);
+                assert_eq!(nigiri_is_transport_active(t, i, 5), true);
+                assert_eq!(nigiri_is_transport_active(t, i, 6), true);
+                assert_eq!(nigiri_is_transport_active(t, i, 7), false);
+                assert_eq!(nigiri_is_transport_active(t, i, 8), true);
+                assert_eq!(nigiri_is_transport_active(t, i, 9), true);
+                assert_eq!(nigiri_is_transport_active(t, i, 10), true);
+                assert_eq!(nigiri_is_transport_active(t, i, 11), false);
             }
 
             println!("{} clasz: {} from: {}, stops: {} evts: {} {:?}", transport_name, (*route).clasz, stop_name, stops.len(), event_mams.len(), event_mams);
