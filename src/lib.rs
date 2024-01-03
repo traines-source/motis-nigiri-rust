@@ -1,7 +1,11 @@
 use nigiri_sys::*;
-use std::ffi::CStr;
 use std::ffi::CString;
 use chrono;
+
+unsafe fn str_from_ptr<'a>(ptr: *const ::std::os::raw::c_char, len: u32) -> &'a str {
+    let slice = std::slice::from_raw_parts(ptr as *const u8, len.try_into().unwrap());
+    std::str::from_utf8_unchecked(slice)
+}
 
 static mut TIMETABLE_UPDATING: Option<fn(evt: EventChange)> = None;
 
@@ -49,12 +53,12 @@ impl Timetable {
         }   
     }
 
-    pub fn get_stops(&self) -> Stops {
+    pub fn get_locations(&self) -> Locations {
         unsafe {
-            Stops {
+            Locations {
                 t: self,
                 i: 0,
-                n_stops: nigiri_get_stop_count(self.t).try_into().unwrap()
+                n_locations: nigiri_get_location_count(self.t).try_into().unwrap()
             }
         }
     }
@@ -93,21 +97,21 @@ impl Timetable {
             Route {
                 ptr: raw_route,
                 route_idx: route_idx,
-                stops: stops.to_vec(), // TODO no clone?
+                stops: stops.iter().map(|s| s.location_idx()).collect(),
                 clasz: (*raw_route).clasz
             }
         }
     }
 
-    pub fn get_stop(&self, stop_idx: usize) -> Stop {
+    pub fn get_location(&self, location_idx: usize) -> Location {
         unsafe {
-            let raw_stop = nigiri_get_stop(self.t, stop_idx.try_into().unwrap());
-            Stop {
-                ptr: raw_stop,
-                id: CStr::from_ptr((*raw_stop).id).to_str().unwrap(),
-                name: CStr::from_ptr((*raw_stop).name).to_str().unwrap(),
-                lat: (*raw_stop).lat as f32,
-                lon: (*raw_stop).lon as f32
+            let raw_location = nigiri_get_location(self.t, location_idx.try_into().unwrap());
+            Location {
+                ptr: raw_location,
+                id: str_from_ptr((*raw_location).id, (*raw_location).id_len),
+                name: str_from_ptr((*raw_location).name, (*raw_location).name_len),
+                lat: (*raw_location).lat as f32,
+                lon: (*raw_location).lon as f32
             }
         }
     }
@@ -127,38 +131,38 @@ impl<'a> Drop for Timetable {
     }
 }
 
-pub struct Stop<'a> {
-    ptr: *const nigiri_stop_t,
+pub struct Location<'a> {
+    ptr: *const nigiri_location_t,
     pub id: &'a str,
     pub name: &'a str,
     pub lat: f32,
     pub lon: f32
 }
 
-impl<'a> Drop for Stop<'a> {
+impl<'a> Drop for Location<'a> {
     fn drop(&mut self) {
         unsafe {
-            nigiri_destroy_stop(self.ptr);
+            nigiri_destroy_location(self.ptr);
         }
     }
 }
 
-pub struct Stops<'a> {
+pub struct Locations<'a> {
     t: &'a Timetable,
     i: usize,
-    n_stops: usize
+    n_locations: usize
 }
 
-impl<'a> Iterator for Stops<'a> {
-    type Item = Stop<'a>;
+impl<'a> Iterator for Locations<'a> {
+    type Item = Location<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.i >= self.n_stops {
+        if self.i >= self.n_locations {
             return None
         }
-        let stop = self.t.get_stop(self.i);
+        let location = self.t.get_location(self.i);
         self.i += 1;
-        Some(stop)
+        Some(location)
     }
 }
 
@@ -166,7 +170,7 @@ pub struct Route {
     ptr: *const nigiri_route_t,
     pub route_idx: u32,
     pub stops: Vec<u32>,
-    pub clasz: u32,
+    pub clasz: u16,
 }
 
 impl Drop for Route {
@@ -212,7 +216,7 @@ impl<'a> Iterator for Transports<'a> {
                 ptr: transport,
                 route_idx: (*transport).route_idx,
                 event_mams: std::slice::from_raw_parts((*transport).event_mams, usize::try_from((*transport).n_event_mams).unwrap()).to_vec(), // TODO no clone
-                name: CStr::from_ptr((*transport).name).to_str().unwrap().to_string() //TODO no clone
+                name: str_from_ptr((*transport).name, (*transport).name_len).to_string()
             };
             Some(result)
         }
