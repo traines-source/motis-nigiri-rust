@@ -499,43 +499,43 @@ fn bindgen_test_layout_nigiri_route_stop() {
 }
 impl nigiri_route_stop {
     #[inline]
-    pub fn location_idx(&self) -> u32 {
+    pub fn location_idx(&self) -> ::std::os::raw::c_uint {
         unsafe { ::std::mem::transmute(self._bitfield_1.get(0usize, 30u8) as u32) }
     }
     #[inline]
-    pub fn set_location_idx(&mut self, val: u32) {
+    pub fn set_location_idx(&mut self, val: ::std::os::raw::c_uint) {
         unsafe {
             let val: u32 = ::std::mem::transmute(val);
             self._bitfield_1.set(0usize, 30u8, val as u64)
         }
     }
     #[inline]
-    pub fn in_allowed(&self) -> bool {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(30usize, 1u8) as u8) }
+    pub fn in_allowed(&self) -> ::std::os::raw::c_uint {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(30usize, 1u8) as u32) }
     }
     #[inline]
-    pub fn set_in_allowed(&mut self, val: bool) {
+    pub fn set_in_allowed(&mut self, val: ::std::os::raw::c_uint) {
         unsafe {
-            let val: u8 = ::std::mem::transmute(val);
+            let val: u32 = ::std::mem::transmute(val);
             self._bitfield_1.set(30usize, 1u8, val as u64)
         }
     }
     #[inline]
-    pub fn out_allowed(&self) -> bool {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(31usize, 1u8) as u8) }
+    pub fn out_allowed(&self) -> ::std::os::raw::c_uint {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(31usize, 1u8) as u32) }
     }
     #[inline]
-    pub fn set_out_allowed(&mut self, val: bool) {
+    pub fn set_out_allowed(&mut self, val: ::std::os::raw::c_uint) {
         unsafe {
-            let val: u8 = ::std::mem::transmute(val);
+            let val: u32 = ::std::mem::transmute(val);
             self._bitfield_1.set(31usize, 1u8, val as u64)
         }
     }
     #[inline]
     pub fn new_bitfield_1(
-        location_idx: u32,
-        in_allowed: bool,
-        out_allowed: bool,
+        location_idx: ::std::os::raw::c_uint,
+        in_allowed: ::std::os::raw::c_uint,
+        out_allowed: ::std::os::raw::c_uint,
     ) -> __BindgenBitfieldUnit<[u8; 4usize]> {
         let mut __bindgen_bitfield_unit: __BindgenBitfieldUnit<[u8; 4usize]> = Default::default();
         __bindgen_bitfield_unit.set(0usize, 30u8, {
@@ -543,11 +543,11 @@ impl nigiri_route_stop {
             location_idx as u64
         });
         __bindgen_bitfield_unit.set(30usize, 1u8, {
-            let in_allowed: u8 = unsafe { ::std::mem::transmute(in_allowed) };
+            let in_allowed: u32 = unsafe { ::std::mem::transmute(in_allowed) };
             in_allowed as u64
         });
         __bindgen_bitfield_unit.set(31usize, 1u8, {
-            let out_allowed: u8 = unsafe { ::std::mem::transmute(out_allowed) };
+            let out_allowed: u32 = unsafe { ::std::mem::transmute(out_allowed) };
             out_allowed as u64
         });
         __bindgen_bitfield_unit
@@ -744,6 +744,9 @@ extern "C" {
     pub fn nigiri_update_with_rt(
         t: *const nigiri_timetable_t,
         gtfsrt_pb_path: *const ::std::os::raw::c_char,
-        callback: ::std::option::Option<unsafe extern "C" fn(arg1: nigiri_event_change_t)>,
+        callback: ::std::option::Option<
+            unsafe extern "C" fn(arg1: nigiri_event_change_t, context: *mut ::std::os::raw::c_void),
+        >,
+        context: *mut ::std::os::raw::c_void,
     );
 }

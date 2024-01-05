@@ -3,6 +3,7 @@ git clone https://github.com/motis-project/nigiri.git || echo "Skipping cloning,
 mkdir -p nigiri/build/
 cd nigiri/build/
 cmake -DCMAKE_BUILD_TYPE=Release -GNinja ..
+#cmake --preset=clang-tidy -DCMAKE_BUILD_TYPE=Release -GNinja .. && cd clang-tidy && ninja && cd ..
 ninja -v | tee /dev/tty | grep nigiri-server | tr " " "\n" | grep lib > nigiri_deps.txt
 ./nigiri-test
 #./nigiri-server ../../tests/fixtures/gtfs_minimal_swiss/

@@ -1,9 +1,9 @@
-use std::ffi::CString;
+use std::{ffi::{CString, c_void}, ptr::null_mut};
 
 use nigiri_sys::*;
 use chrono;
 
-extern "C" fn my_callback(evt: nigiri_event_change) {
+extern "C" fn my_callback(evt: nigiri_event_change, _context: *mut c_void) {
     println!("{:?}", evt);
 }
 
@@ -43,8 +43,8 @@ pub fn it_works() {
             assert_eq!(event_mams.len(), (stops.len()-1)*2);
             
             if i == 0 {
-                assert_eq!(stops[0].in_allowed(), true);
-                assert_eq!(stops[0].out_allowed(), false);            
+                assert_eq!(stops[0].in_allowed(), 1);
+                assert_eq!(stops[0].out_allowed(), 0);            
                 assert_eq!(transport_name, "1 13710");
                 assert_eq!((*route).clasz, 8);
                 assert_eq!(stop_name, "Zürich HB");
@@ -67,8 +67,8 @@ pub fn it_works() {
             nigiri_destroy_transport(transport);
         }
         let gtfsrt_path = CString::new("./tests/fixtures/2024-01-02T01_48_02+01_00.gtfsrt").unwrap();
-        nigiri_update_with_rt(t, gtfsrt_path.as_ptr(), Some(my_callback));
-        nigiri_update_with_rt(t, gtfsrt_path.as_ptr(), Some(my_callback));
+        nigiri_update_with_rt(t, gtfsrt_path.as_ptr(), Some(my_callback), null_mut());
+        nigiri_update_with_rt(t, gtfsrt_path.as_ptr(), Some(my_callback), null_mut());
         nigiri_destroy(t);
     }
 }
