@@ -25,6 +25,15 @@ pub fn it_works() {
         assert_eq!(str_from_ptr((*s0).name, (*s0).name_len), "START");
         let s0 = nigiri_get_location(t, 9);
         assert_eq!(str_from_ptr((*s0).name, (*s0).name_len), "Zürich HB");
+        let footpaths = std::slice::from_raw_parts((*s0).footpaths, (*s0).n_footpaths.try_into().unwrap());
+        assert_eq!(footpaths.len(), 3);
+        assert_eq!(footpaths[0].target_location_idx(), 10);
+        assert_eq!(footpaths[0].duration(), 2);
+        let s0 = nigiri_get_location(t, footpaths[0].target_location_idx());
+        assert_eq!(str_from_ptr((*s0).id, (*s0).id_len), "8503000P");
+        assert_eq!(footpaths[1].target_location_idx(), 53);
+        assert_eq!(footpaths[1].duration(), 4);
+        
         let s0 = nigiri_get_location(t, stop_count-2);
         assert_eq!(str_from_ptr((*s0).name, (*s0).name_len), "Sion");
 

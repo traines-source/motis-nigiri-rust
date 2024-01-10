@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 nigiri-sys = { path = "nigiri-sys", version = "0.1.0" }
 chrono = "0.4.31"
+serde = { version = "1.0.195", features = ["derive"] }

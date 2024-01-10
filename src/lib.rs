@@ -1,6 +1,7 @@
 use nigiri_sys::*;
-use std::ffi::CString;
+use std::{ffi::{CString, c_void}, ptr::null_mut};
 use chrono;
+use serde::{Serialize, Deserialize};
 
 unsafe fn str_from_ptr<'a>(ptr: *const ::std::os::raw::c_char, len: u32) -> &'a str {
     let slice = std::slice::from_raw_parts(ptr as *const u8, len.try_into().unwrap());
@@ -9,7 +10,7 @@ unsafe fn str_from_ptr<'a>(ptr: *const ::std::os::raw::c_char, len: u32) -> &'a 
 
 static mut TIMETABLE_UPDATING: Option<fn(evt: EventChange)> = None;
 
-extern "C" fn nigiri_callback(evt: nigiri_event_change) {
+extern "C" fn nigiri_callback(evt: nigiri_event_change, _context: *mut c_void) {
     unsafe {
         if TIMETABLE_UPDATING.is_some() {
             let c = TIMETABLE_UPDATING.unwrap();
@@ -47,7 +48,7 @@ impl Timetable {
             }
             TIMETABLE_UPDATING = Some(callback);
             let path = CString::new(path).unwrap();
-            nigiri_update_with_rt(self.t, path.as_ptr(), Some(nigiri_callback));
+            nigiri_update_with_rt(self.t, path.as_ptr(), Some(nigiri_callback), null_mut());
             TIMETABLE_UPDATING = None;
             Ok(())
         }   
@@ -111,7 +112,12 @@ impl Timetable {
                 id: str_from_ptr((*raw_location).id, (*raw_location).id_len),
                 name: str_from_ptr((*raw_location).name, (*raw_location).name_len),
                 lat: (*raw_location).lat as f32,
-                lon: (*raw_location).lon as f32
+                lon: (*raw_location).lon as f32,
+                transfer_time: (*raw_location).transfer_time,
+                footpaths: std::slice::from_raw_parts((*raw_location).footpaths, (*raw_location).n_footpaths.try_into().unwrap()).iter().map(|f| Footpath{
+                    target_location_idx: f.target_location_idx().try_into().unwrap(),
+                    duration: f.duration()
+                }).collect()       
             }
         }
     }
@@ -131,12 +137,21 @@ impl<'a> Drop for Timetable {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Footpath {
+    pub target_location_idx: usize,
+    pub duration: u32 
+}
+
+#[derive(Debug)]
 pub struct Location<'a> {
     ptr: *const nigiri_location_t,
     pub id: &'a str,
     pub name: &'a str,
     pub lat: f32,
-    pub lon: f32
+    pub lon: f32,
+    pub transfer_time: u16,
+    pub footpaths: Vec<Footpath>
 }
 
 impl<'a> Drop for Location<'a> {
@@ -166,6 +181,7 @@ impl<'a> Iterator for Locations<'a> {
     }
 }
 
+#[derive(Debug)]
 pub struct Route {
     ptr: *const nigiri_route_t,
     pub route_idx: u32,
@@ -181,14 +197,15 @@ impl Drop for Route {
     }
 }
 
-pub struct Transport {
+#[derive(Debug)]
+pub struct Transport<'a> {
     ptr: *const nigiri_transport_t,
     pub route_idx: u32,
-    pub event_mams: Vec<i16>,
+    pub event_mams: &'a [i16],
     pub name: String,
 }
 
-impl Drop for Transport {
+impl<'a> Drop for Transport<'a> {
     fn drop(&mut self) {
         unsafe {
             nigiri_destroy_transport(self.ptr);
@@ -203,7 +220,7 @@ pub struct Transports<'a> {
 }
 
 impl<'a> Iterator for Transports<'a> {
-    type Item = Transport;
+    type Item = Transport<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         unsafe {
@@ -215,7 +232,7 @@ impl<'a> Iterator for Transports<'a> {
             let result = Transport {
                 ptr: transport,
                 route_idx: (*transport).route_idx,
-                event_mams: std::slice::from_raw_parts((*transport).event_mams, usize::try_from((*transport).n_event_mams).unwrap()).to_vec(), // TODO no clone
+                event_mams: std::slice::from_raw_parts((*transport).event_mams, usize::try_from((*transport).n_event_mams).unwrap()),
                 name: str_from_ptr((*transport).name, (*transport).name_len).to_string()
             };
             Some(result)
@@ -223,6 +240,7 @@ impl<'a> Iterator for Transports<'a> {
     }
 }
 
+#[derive(Debug)]
 pub struct Connection {
 	pub route_idx: u32,
 	pub trip_id: u32,
@@ -237,7 +255,7 @@ pub struct Connections<'a> {
     n_days: u16,
     transport_idx: usize,
     transports: Transports<'a>,
-    transport: Option<Transport>,
+    transport: Option<Transport<'a>>,
     day_idx: u16,
     i: usize
 }
@@ -249,7 +267,6 @@ impl<'a> Connections<'a> {
 
     fn next_active_day_idx(&mut self) {
         while self.day_idx < self.n_days && !self.t.is_transport_active(self.transport_idx, self.day_idx) {
-            println!("weird {} {}", self.n_days, self.day_idx);
             self.day_idx += 1;
         }
     }

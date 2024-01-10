@@ -369,6 +369,69 @@ fn bindgen_test_layout_nigiri_transport() {
     );
 }
 pub type nigiri_transport_t = nigiri_transport;
+pub const kTargetBits: u32 = 22;
+pub const kDurationBits: u32 = 10;
+#[repr(C)]
+#[repr(align(4))]
+#[derive(Debug, Copy, Clone)]
+pub struct nigiri_footpath {
+    pub _bitfield_align_1: [u32; 0],
+    pub _bitfield_1: __BindgenBitfieldUnit<[u8; 4usize]>,
+}
+#[test]
+fn bindgen_test_layout_nigiri_footpath() {
+    assert_eq!(
+        ::std::mem::size_of::<nigiri_footpath>(),
+        4usize,
+        concat!("Size of: ", stringify!(nigiri_footpath))
+    );
+    assert_eq!(
+        ::std::mem::align_of::<nigiri_footpath>(),
+        4usize,
+        concat!("Alignment of ", stringify!(nigiri_footpath))
+    );
+}
+impl nigiri_footpath {
+    #[inline]
+    pub fn target_location_idx(&self) -> ::std::os::raw::c_uint {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(0usize, 22u8) as u32) }
+    }
+    #[inline]
+    pub fn set_target_location_idx(&mut self, val: ::std::os::raw::c_uint) {
+        unsafe {
+            let val: u32 = ::std::mem::transmute(val);
+            self._bitfield_1.set(0usize, 22u8, val as u64)
+        }
+    }
+    #[inline]
+    pub fn duration(&self) -> ::std::os::raw::c_uint {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(22usize, 10u8) as u32) }
+    }
+    #[inline]
+    pub fn set_duration(&mut self, val: ::std::os::raw::c_uint) {
+        unsafe {
+            let val: u32 = ::std::mem::transmute(val);
+            self._bitfield_1.set(22usize, 10u8, val as u64)
+        }
+    }
+    #[inline]
+    pub fn new_bitfield_1(
+        target_location_idx: ::std::os::raw::c_uint,
+        duration: ::std::os::raw::c_uint,
+    ) -> __BindgenBitfieldUnit<[u8; 4usize]> {
+        let mut __bindgen_bitfield_unit: __BindgenBitfieldUnit<[u8; 4usize]> = Default::default();
+        __bindgen_bitfield_unit.set(0usize, 22u8, {
+            let target_location_idx: u32 = unsafe { ::std::mem::transmute(target_location_idx) };
+            target_location_idx as u64
+        });
+        __bindgen_bitfield_unit.set(22usize, 10u8, {
+            let duration: u32 = unsafe { ::std::mem::transmute(duration) };
+            duration as u64
+        });
+        __bindgen_bitfield_unit
+    }
+}
+pub type nigiri_footpath_t = nigiri_footpath;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct nigiri_location {
@@ -379,6 +442,8 @@ pub struct nigiri_location {
     pub lon: f64,
     pub lat: f64,
     pub transfer_time: u16,
+    pub footpaths: *mut nigiri_footpath_t,
+    pub n_footpaths: u32,
     pub parent: u32,
 }
 #[test]
@@ -387,7 +452,7 @@ fn bindgen_test_layout_nigiri_location() {
     let ptr = UNINIT.as_ptr();
     assert_eq!(
         ::std::mem::size_of::<nigiri_location>(),
-        56usize,
+        72usize,
         concat!("Size of: ", stringify!(nigiri_location))
     );
     assert_eq!(
@@ -466,8 +531,28 @@ fn bindgen_test_layout_nigiri_location() {
         )
     );
     assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).footpaths) as usize - ptr as usize },
+        56usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(nigiri_location),
+            "::",
+            stringify!(footpaths)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).n_footpaths) as usize - ptr as usize },
+        64usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(nigiri_location),
+            "::",
+            stringify!(n_footpaths)
+        )
+    );
+    assert_eq!(
         unsafe { ::std::ptr::addr_of!((*ptr).parent) as usize - ptr as usize },
-        52usize,
+        68usize,
         concat!(
             "Offset of field: ",
             stringify!(nigiri_location),
@@ -736,6 +821,13 @@ extern "C" {
 }
 extern "C" {
     pub fn nigiri_get_location(t: *const nigiri_timetable_t, idx: u32) -> *mut nigiri_location_t;
+}
+extern "C" {
+    pub fn nigiri_get_location_with_footpaths(
+        t: *const nigiri_timetable_t,
+        idx: u32,
+        incoming_footpaths: bool,
+    ) -> *mut nigiri_location_t;
 }
 extern "C" {
     pub fn nigiri_destroy_location(location: *const nigiri_location_t);
