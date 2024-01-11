@@ -35,5 +35,5 @@ pub fn it_works() {
         assert!(s.id.len() > 0);
     }
 
-    t.update_with_rt("./nigiri-sys/tests/fixtures/2024-01-02T01_48_02+01_00.gtfsrt", |evt| println!("{:?}", evt)).unwrap();
+    t.update_with_rt("./nigiri-sys/tests/fixtures/2024-01-02T01_48_02+01_00.gtfsrt", |evt| println!("{:?}", evt));
 }

@@ -1,5 +1,5 @@
 use nigiri_sys::*;
-use std::{ffi::{CString, c_void}, ptr::null_mut};
+use std::{ffi::{CString, c_void}, collections::HashMap};
 use chrono;
 use serde::{Serialize, Deserialize};
 
@@ -8,21 +8,17 @@ unsafe fn str_from_ptr<'a>(ptr: *const ::std::os::raw::c_char, len: u32) -> &'a 
     std::str::from_utf8_unchecked(slice)
 }
 
-static mut TIMETABLE_UPDATING: Option<fn(evt: EventChange)> = None;
-
-extern "C" fn nigiri_callback(evt: nigiri_event_change, _context: *mut c_void) {
+extern "C" fn nigiri_callback<F>(evt: nigiri_event_change, context: *mut c_void) where F: FnMut(EventChange) {
     unsafe {
-        if TIMETABLE_UPDATING.is_some() {
-            let c = TIMETABLE_UPDATING.unwrap();
-            c(EventChange {
-                    transport_idx: evt.transport_idx,
-                    day: evt.day_idx,
-                    stop_idx: evt.stop_idx,
-                    is_departure: evt.is_departure,
-                    delay: evt.delay,
-                    cancelled: evt.cancelled,
-            });
-        }
+        let closure = &mut *(context as *mut F);
+        closure(EventChange {
+            transport_idx: evt.transport_idx.try_into().unwrap(),
+            day_idx: evt.day_idx,
+            stop_idx: evt.stop_idx.try_into().unwrap(),
+            is_departure: evt.is_departure,
+            delay: evt.delay,
+            cancelled: evt.cancelled,
+        });
     } 
 }
 
@@ -41,16 +37,10 @@ impl Timetable {
         }
     }
 
-    pub fn update_with_rt(&self, path: &str, callback: fn(evt: EventChange)) -> Result<(), &'static str> {
+    pub fn update_with_rt<F: FnMut(EventChange)>(&self, path: &str, mut callback: F) {
         unsafe {
-            if TIMETABLE_UPDATING.is_some() {
-                return Err("only one timetable can be updated at a time");
-            }
-            TIMETABLE_UPDATING = Some(callback);
             let path = CString::new(path).unwrap();
-            nigiri_update_with_rt(self.t, path.as_ptr(), Some(nigiri_callback), null_mut());
-            TIMETABLE_UPDATING = None;
-            Ok(())
+            nigiri_update_with_rt(self.t, path.as_ptr(), Some(nigiri_callback::<F>), &mut callback as *mut _ as *mut c_void);
         }   
     }
 
@@ -86,8 +76,10 @@ impl Timetable {
             transport_idx: 0,
             transports: transports,
             transport: None,
-            i: 0,
-            day_idx: 0
+            day_idx: 0,
+            stop_idx: 0,
+            id: 0,
+            transport_at_day_to_connection_id: HashMap::new()
         }
     }
 
@@ -242,6 +234,7 @@ impl<'a> Iterator for Transports<'a> {
 
 #[derive(Debug)]
 pub struct Connection {
+    pub id: usize,
 	pub route_idx: u32,
 	pub trip_id: u32,
 	pub from_idx: usize,
@@ -257,7 +250,9 @@ pub struct Connections<'a> {
     transports: Transports<'a>,
     transport: Option<Transport<'a>>,
     day_idx: u16,
-    i: usize
+    stop_idx: usize,
+    id: usize,
+    pub transport_at_day_to_connection_id: HashMap<(usize, u16), usize>
 }
 
 impl<'a> Connections<'a> {
@@ -269,6 +264,17 @@ impl<'a> Connections<'a> {
         while self.day_idx < self.n_days && !self.t.is_transport_active(self.transport_idx, self.day_idx) {
             self.day_idx += 1;
         }
+        self.transport_at_day_to_connection_id.insert((self.transport_idx, self.day_idx), self.id);
+    }
+
+    pub fn get_connection_idx(&self, transport_idx: usize, day_idx: u16, stop_idx: usize) -> usize {
+        self.transport_at_day_to_connection_id[&(transport_idx, day_idx)] + stop_idx
+    }
+}
+
+impl<'a> Into<HashMap<(usize, u16), usize>> for Connections<'a> {
+    fn into(self) -> HashMap<(usize, u16), usize> {
+        self.transport_at_day_to_connection_id
     }
 }
 
@@ -284,8 +290,8 @@ impl<'a> Iterator for Connections<'a> {
             self.next_active_day_idx();
         }
         let route = self.t.get_route(self.transport.as_ref().unwrap().route_idx);
-        if self.i >= route.stops.len()-1 {
-            self.i = 0;
+        if self.stop_idx >= route.stops.len()-1 {
+            self.stop_idx = 0;
             self.day_idx += 1;
             self.next_active_day_idx();
         }
@@ -293,10 +299,10 @@ impl<'a> Iterator for Connections<'a> {
         if self.day_idx >= self.n_days { 
             self.transport = match self.transports.next() {
                 Some(t) => {
-                    self.i = 0;
+                    self.stop_idx = 0;
                     self.day_idx = 0;
-                    self.next_active_day_idx();
                     self.transport_idx += 1;
+                    self.next_active_day_idx();
                     Some(t)
                 },
                 None => return None
@@ -305,23 +311,26 @@ impl<'a> Iterator for Connections<'a> {
         let transport = self.transport.as_ref().unwrap();
         //TODO route
         let c = Connection {
+            id: self.id,
             route_idx: transport.route_idx,
             trip_id: self.transports.i,
-            from_idx: route.stops[self.i].try_into().unwrap(),
-            to_idx: route.stops[self.i+1].try_into().unwrap(),
-            departure: Connections::get_minutes_after_base(self.day_idx, transport.event_mams[self.i*2]),
-            arrival: Connections::get_minutes_after_base(self.day_idx, transport.event_mams[self.i*2+1])
+            from_idx: route.stops[self.stop_idx].try_into().unwrap(),
+            to_idx: route.stops[self.stop_idx+1].try_into().unwrap(),
+            departure: Connections::get_minutes_after_base(self.day_idx, transport.event_mams[self.stop_idx*2]),
+            arrival: Connections::get_minutes_after_base(self.day_idx, transport.event_mams[self.stop_idx*2+1])
         };
-        self.i += 1;
+        assert_eq!(self.get_connection_idx(self.transport_idx, self.day_idx, self.stop_idx), self.id);
+        self.stop_idx += 1;
+        self.id += 1;
         Some(c)
     }
 }
 
 #[derive(Debug)]
 pub struct EventChange {
-    pub transport_idx: u32,
-    pub day: u16,
-    pub stop_idx: u32,
+    pub transport_idx: usize,
+    pub day_idx: u16,
+    pub stop_idx: usize,
     pub is_departure: bool,
     pub delay: i16,
     pub cancelled: bool,
