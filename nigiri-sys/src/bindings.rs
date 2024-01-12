@@ -697,7 +697,7 @@ pub type nigiri_route_t = nigiri_route;
 pub struct nigiri_event_change {
     pub transport_idx: u32,
     pub day_idx: u16,
-    pub stop_idx: u32,
+    pub stop_idx: u16,
     pub is_departure: bool,
     pub delay: i16,
     pub cancelled: bool,
@@ -708,7 +708,7 @@ fn bindgen_test_layout_nigiri_event_change() {
     let ptr = UNINIT.as_ptr();
     assert_eq!(
         ::std::mem::size_of::<nigiri_event_change>(),
-        20usize,
+        16usize,
         concat!("Size of: ", stringify!(nigiri_event_change))
     );
     assert_eq!(
@@ -738,7 +738,7 @@ fn bindgen_test_layout_nigiri_event_change() {
     );
     assert_eq!(
         unsafe { ::std::ptr::addr_of!((*ptr).stop_idx) as usize - ptr as usize },
-        8usize,
+        6usize,
         concat!(
             "Offset of field: ",
             stringify!(nigiri_event_change),
@@ -748,7 +748,7 @@ fn bindgen_test_layout_nigiri_event_change() {
     );
     assert_eq!(
         unsafe { ::std::ptr::addr_of!((*ptr).is_departure) as usize - ptr as usize },
-        12usize,
+        8usize,
         concat!(
             "Offset of field: ",
             stringify!(nigiri_event_change),
@@ -758,7 +758,7 @@ fn bindgen_test_layout_nigiri_event_change() {
     );
     assert_eq!(
         unsafe { ::std::ptr::addr_of!((*ptr).delay) as usize - ptr as usize },
-        14usize,
+        10usize,
         concat!(
             "Offset of field: ",
             stringify!(nigiri_event_change),
@@ -768,7 +768,7 @@ fn bindgen_test_layout_nigiri_event_change() {
     );
     assert_eq!(
         unsafe { ::std::ptr::addr_of!((*ptr).cancelled) as usize - ptr as usize },
-        16usize,
+        12usize,
         concat!(
             "Offset of field: ",
             stringify!(nigiri_event_change),
@@ -778,6 +778,220 @@ fn bindgen_test_layout_nigiri_event_change() {
     );
 }
 pub type nigiri_event_change_t = nigiri_event_change;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct nigiri_leg {
+    pub is_footpath: bool,
+    pub transport_idx: u32,
+    pub day_idx: u16,
+    pub from_stop_idx: u16,
+    pub from_location_idx: u32,
+    pub to_stop_idx: u16,
+    pub to_location_idx: u32,
+    pub duration: u32,
+}
+#[test]
+fn bindgen_test_layout_nigiri_leg() {
+    const UNINIT: ::std::mem::MaybeUninit<nigiri_leg> = ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<nigiri_leg>(),
+        28usize,
+        concat!("Size of: ", stringify!(nigiri_leg))
+    );
+    assert_eq!(
+        ::std::mem::align_of::<nigiri_leg>(),
+        4usize,
+        concat!("Alignment of ", stringify!(nigiri_leg))
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).is_footpath) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(nigiri_leg),
+            "::",
+            stringify!(is_footpath)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).transport_idx) as usize - ptr as usize },
+        4usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(nigiri_leg),
+            "::",
+            stringify!(transport_idx)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).day_idx) as usize - ptr as usize },
+        8usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(nigiri_leg),
+            "::",
+            stringify!(day_idx)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).from_stop_idx) as usize - ptr as usize },
+        10usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(nigiri_leg),
+            "::",
+            stringify!(from_stop_idx)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).from_location_idx) as usize - ptr as usize },
+        12usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(nigiri_leg),
+            "::",
+            stringify!(from_location_idx)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).to_stop_idx) as usize - ptr as usize },
+        16usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(nigiri_leg),
+            "::",
+            stringify!(to_stop_idx)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).to_location_idx) as usize - ptr as usize },
+        20usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(nigiri_leg),
+            "::",
+            stringify!(to_location_idx)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).duration) as usize - ptr as usize },
+        24usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(nigiri_leg),
+            "::",
+            stringify!(duration)
+        )
+    );
+}
+pub type nigiri_leg_t = nigiri_leg;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct nigiri_journey {
+    pub n_legs: u16,
+    pub legs: *mut nigiri_leg_t,
+    pub start_time: i64,
+    pub dest_time: i64,
+}
+#[test]
+fn bindgen_test_layout_nigiri_journey() {
+    const UNINIT: ::std::mem::MaybeUninit<nigiri_journey> = ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<nigiri_journey>(),
+        32usize,
+        concat!("Size of: ", stringify!(nigiri_journey))
+    );
+    assert_eq!(
+        ::std::mem::align_of::<nigiri_journey>(),
+        8usize,
+        concat!("Alignment of ", stringify!(nigiri_journey))
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).n_legs) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(nigiri_journey),
+            "::",
+            stringify!(n_legs)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).legs) as usize - ptr as usize },
+        8usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(nigiri_journey),
+            "::",
+            stringify!(legs)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).start_time) as usize - ptr as usize },
+        16usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(nigiri_journey),
+            "::",
+            stringify!(start_time)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).dest_time) as usize - ptr as usize },
+        24usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(nigiri_journey),
+            "::",
+            stringify!(dest_time)
+        )
+    );
+}
+pub type nigiri_journey_t = nigiri_journey;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct nigiri_pareto_set {
+    pub n_journeys: u16,
+    pub journeys: *mut nigiri_journey_t,
+}
+#[test]
+fn bindgen_test_layout_nigiri_pareto_set() {
+    const UNINIT: ::std::mem::MaybeUninit<nigiri_pareto_set> = ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<nigiri_pareto_set>(),
+        16usize,
+        concat!("Size of: ", stringify!(nigiri_pareto_set))
+    );
+    assert_eq!(
+        ::std::mem::align_of::<nigiri_pareto_set>(),
+        8usize,
+        concat!("Alignment of ", stringify!(nigiri_pareto_set))
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).n_journeys) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(nigiri_pareto_set),
+            "::",
+            stringify!(n_journeys)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).journeys) as usize - ptr as usize },
+        8usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(nigiri_pareto_set),
+            "::",
+            stringify!(journeys)
+        )
+    );
+}
+pub type nigiri_pareto_set_t = nigiri_pareto_set;
 extern "C" {
     pub fn nigiri_load(
         path: *const ::std::os::raw::c_char,
@@ -841,4 +1055,16 @@ extern "C" {
         >,
         context: *mut ::std::os::raw::c_void,
     );
+}
+extern "C" {
+    pub fn nigiri_get_journeys(
+        t: *const nigiri_timetable_t,
+        start_location_idx: u32,
+        destination_location_idx: u32,
+        time: i64,
+        backward_search: bool,
+    ) -> *mut nigiri_pareto_set_t;
+}
+extern "C" {
+    pub fn nigiri_destroy_journeys(journeys: *const nigiri_pareto_set_t);
 }

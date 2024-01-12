@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use motis_nigiri::*;
 use chrono;
 
@@ -6,9 +8,9 @@ pub fn it_works() {
     let t = Timetable::load("./nigiri-sys/tests/fixtures/gtfs_minimal_swiss/", chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(), chrono::NaiveDate::from_ymd_opt(2024, 1, 10).unwrap());
     
     let mut i = 0;
-    let connections = t.get_connections();
+    let mut connections = t.get_connections();
     let locations: Vec<Location> = t.get_locations().collect();
-    for c in connections {
+    for c in &mut connections {
         if i == 0 {
             assert_eq!(c.departure, 1440*5+0);
             assert_eq!(c.arrival, 1440*5+2);
@@ -36,4 +38,17 @@ pub fn it_works() {
     }
 
     t.update_with_rt("./nigiri-sys/tests/fixtures/2024-01-02T01_48_02+01_00.gtfsrt", |evt| println!("{:?}", evt));
+
+    let mapping: HashMap<(usize, u16), usize> = connections.into();
+    let p = t.get_journeys(11, 69, 7000, false);
+    assert_eq!(p.journeys.len(), 1);
+    let j1 = &p.journeys[0];
+    assert_eq!(j1.start_time, 7000);
+    assert_eq!(j1.dest_time, 7528);
+    for l in &p.journeys[0].legs {
+        println!("{:?} {:?}", l, t.get_location(l.from_location_idx));
+    }
+    assert_eq!(j1.legs[0].from_location_idx, 11);
+    assert_eq!(mapping[&(j1.legs[0].transport_idx, j1.legs[0].day_idx)]+j1.legs[0].to_stop_idx as usize, 17);
+    
 }

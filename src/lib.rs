@@ -119,6 +119,38 @@ impl Timetable {
             nigiri_is_transport_active(self.t, transport_idx.try_into().unwrap(), day_idx)
         }
     }
+
+    pub fn get_start_day_ts(&self) -> i64 {
+        unsafe {
+            nigiri_get_start_day_ts(self.t)
+        }
+    }
+
+    pub fn get_journeys(&self, start_location_idx: usize, destination_location_idx: usize, time: i32, backward_search: bool) -> ParetoSet {
+        unsafe {
+            let time_ref = self.get_start_day_ts();
+            let ptr = nigiri_get_journeys(self.t, start_location_idx.try_into().unwrap(), destination_location_idx.try_into().unwrap(), time as i64*60+time_ref, backward_search);
+            let journeys = std::slice::from_raw_parts((*ptr).journeys, (*ptr).n_journeys.try_into().unwrap());
+            println!("lnsdajfh{}", journeys.len());
+            ParetoSet {
+                ptr: ptr,
+                journeys: journeys.iter().map(|j| Journey{
+                    start_time: (((*j).start_time-time_ref)/60) as i32,
+                    dest_time: (((*j).dest_time-time_ref)/60) as i32,
+                    legs: std::slice::from_raw_parts((*j).legs, (*j).n_legs.try_into().unwrap()).iter().map(|l| Leg {
+                        is_footpath: (*l).is_footpath,
+                        transport_idx: (*l).transport_idx.try_into().unwrap(),
+                        day_idx: (*l).day_idx,
+                        from_stop_idx: (*l).from_stop_idx,
+                        from_location_idx: (*l).from_location_idx.try_into().unwrap(),
+                        to_stop_idx: (*l).to_stop_idx,
+                        to_location_idx: (*l).to_location_idx.try_into().unwrap(),
+                        duration: (*l).duration
+                    }).collect()
+                }).collect()
+            }
+        }
+    }
 }
 
 impl<'a> Drop for Timetable {
@@ -330,8 +362,42 @@ impl<'a> Iterator for Connections<'a> {
 pub struct EventChange {
     pub transport_idx: usize,
     pub day_idx: u16,
-    pub stop_idx: usize,
+    pub stop_idx: u16,
     pub is_departure: bool,
     pub delay: i16,
     pub cancelled: bool,
 }
+
+#[derive(Debug)]
+pub struct ParetoSet {
+    ptr: *const nigiri_pareto_set_t,
+    pub journeys: Vec<Journey>
+}
+
+impl<'a> Drop for ParetoSet {
+    fn drop(&mut self) {
+        unsafe {
+            nigiri_destroy_journeys(self.ptr);
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct Journey {
+    pub legs: Vec<Leg>,
+    pub start_time: i32,
+    pub dest_time: i32
+}
+
+#[derive(Debug)]
+pub struct Leg {
+    pub is_footpath: bool,
+    pub transport_idx: usize,
+    pub day_idx: u16,
+    pub from_stop_idx: u16,
+    pub from_location_idx: usize,
+    pub to_stop_idx: u16,
+    pub to_location_idx: usize,
+    pub duration: u32
+}
+
