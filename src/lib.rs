@@ -59,7 +59,7 @@ impl Timetable {
             Transports {
                 t: self,
                 i: 0,
-                n_transports: nigiri_get_transport_count(self.t)
+                n_transports: nigiri_get_transport_count(self.t).try_into().unwrap()
             }
         }
     }
@@ -76,6 +76,7 @@ impl Timetable {
             transport_idx: 0,
             transports: transports,
             transport: None,
+            route: None,
             day_idx: 0,
             stop_idx: 0,
             id: 0,
@@ -110,6 +111,18 @@ impl Timetable {
                     target_location_idx: f.target_location_idx().try_into().unwrap(),
                     duration: f.duration()
                 }).collect()       
+            }
+        }
+    }
+
+    pub fn get_transport(&self, transport_idx: usize) -> Transport {
+        unsafe {
+            let transport = nigiri_get_transport(self.t, transport_idx.try_into().unwrap());        
+            Transport {
+                ptr: transport,
+                route_idx: (*transport).route_idx,
+                event_mams: std::slice::from_raw_parts((*transport).event_mams, usize::try_from((*transport).n_event_mams).unwrap()),
+                name: str_from_ptr((*transport).name, (*transport).name_len).to_string()
             }
         }
     }
@@ -239,28 +252,20 @@ impl<'a> Drop for Transport<'a> {
 
 pub struct Transports<'a> {
     t: &'a Timetable,
-    i: u32,
-    n_transports: u32
+    i: usize,
+    n_transports: usize
 }
 
 impl<'a> Iterator for Transports<'a> {
     type Item = Transport<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        unsafe {
-            if self.i >= self.n_transports {
-                return None
-            }
-            let transport = nigiri_get_transport(self.t.t, self.i);        
-            self.i += 1;
-            let result = Transport {
-                ptr: transport,
-                route_idx: (*transport).route_idx,
-                event_mams: std::slice::from_raw_parts((*transport).event_mams, usize::try_from((*transport).n_event_mams).unwrap()),
-                name: str_from_ptr((*transport).name, (*transport).name_len).to_string()
-            };
-            Some(result)
+        if self.i >= self.n_transports {
+            return None
         }
+        let result = self.t.get_transport(self.i);  
+        self.i += 1;
+        Some(result)
     }
 }
 
@@ -281,6 +286,7 @@ pub struct Connections<'a> {
     transport_idx: usize,
     transports: Transports<'a>,
     transport: Option<Transport<'a>>,
+    route: Option<Route>,
     day_idx: u16,
     stop_idx: usize,
     id: usize,
@@ -319,10 +325,10 @@ impl<'a> Iterator for Connections<'a> {
             if self.transport.is_none() {
                 return None
             }
+            self.route = Some(self.t.get_route(self.transport.as_ref().unwrap().route_idx));
             self.next_active_day_idx();
         }
-        let route = self.t.get_route(self.transport.as_ref().unwrap().route_idx);
-        if self.stop_idx >= route.stops.len()-1 {
+        if self.stop_idx >= self.route.as_ref().unwrap().stops.len()-1 {
             self.stop_idx = 0;
             self.day_idx += 1;
             self.next_active_day_idx();
@@ -334,20 +340,23 @@ impl<'a> Iterator for Connections<'a> {
                     self.stop_idx = 0;
                     self.day_idx = 0;
                     self.transport_idx += 1;
+                    if self.transport.as_ref().unwrap().route_idx != t.route_idx {
+                        self.route = Some(self.t.get_route(t.route_idx));
+                    }
                     self.next_active_day_idx();
                     Some(t)
                 },
                 None => return None
-            }
+            };
         }
         let transport = self.transport.as_ref().unwrap();
         //TODO route
         let c = Connection {
             id: self.id,
             route_idx: transport.route_idx,
-            trip_id: self.transports.i,
-            from_idx: route.stops[self.stop_idx].try_into().unwrap(),
-            to_idx: route.stops[self.stop_idx+1].try_into().unwrap(),
+            trip_id: self.transports.i.try_into().unwrap(),
+            from_idx: self.route.as_ref().unwrap().stops[self.stop_idx].try_into().unwrap(),
+            to_idx: self.route.as_ref().unwrap().stops[self.stop_idx+1].try_into().unwrap(),
             departure: Connections::get_minutes_after_base(self.day_idx, transport.event_mams[self.stop_idx*2]),
             arrival: Connections::get_minutes_after_base(self.day_idx, transport.event_mams[self.stop_idx*2+1])
         };

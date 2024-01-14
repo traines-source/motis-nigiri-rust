@@ -29,6 +29,15 @@ pub fn it_works() {
             assert_eq!(stop.name, "Zürich Altstetten");
             assert_eq!(locations[c.to_idx].name, "Zürich Altstetten");
         }
+        if i == 119 {
+            assert_eq!(c.departure, 1440*5+7);
+            assert_eq!(c.arrival, 1440*5+11);
+            let route = t.get_route(c.route_idx);
+            assert_eq!(route.clasz, 8);
+            let stop = t.get_location(c.from_idx);
+            assert_eq!(stop.id, "8502113:0:1");
+            assert_eq!(stop.name, "Aarau");
+        }
         i += 1;
     }
     assert_eq!(i, 313);
