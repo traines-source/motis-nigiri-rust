@@ -88,6 +88,7 @@ impl Timetable {
         unsafe {
             let raw_route = nigiri_get_route(self.t, route_idx);
             let stops = std::slice::from_raw_parts((*raw_route).stops, (*raw_route).n_stops.try_into().unwrap());
+            // TODO in/out_allowed
             Route {
                 ptr: raw_route,
                 route_idx: route_idx,
@@ -144,9 +145,7 @@ impl Timetable {
             let time_ref = self.get_start_day_ts();
             let ptr = nigiri_get_journeys(self.t, start_location_idx.try_into().unwrap(), destination_location_idx.try_into().unwrap(), time as i64*60+time_ref, backward_search);
             let journeys = std::slice::from_raw_parts((*ptr).journeys, (*ptr).n_journeys.try_into().unwrap());
-            println!("lnsdajfh{}", journeys.len());
-            ParetoSet {
-                ptr: ptr,
+            let p = ParetoSet {
                 journeys: journeys.iter().map(|j| Journey{
                     start_time: (((*j).start_time-time_ref)/60) as i32,
                     dest_time: (((*j).dest_time-time_ref)/60) as i32,
@@ -161,7 +160,9 @@ impl Timetable {
                         duration: (*l).duration
                     }).collect()
                 }).collect()
-            }
+            };
+            nigiri_destroy_journeys(ptr);
+            p
         }
     }
 }
@@ -379,16 +380,7 @@ pub struct EventChange {
 
 #[derive(Debug)]
 pub struct ParetoSet {
-    ptr: *const nigiri_pareto_set_t,
     pub journeys: Vec<Journey>
-}
-
-impl<'a> Drop for ParetoSet {
-    fn drop(&mut self) {
-        unsafe {
-            nigiri_destroy_journeys(self.ptr);
-        }
-    }
 }
 
 #[derive(Debug)]
