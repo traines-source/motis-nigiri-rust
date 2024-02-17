@@ -108,6 +108,7 @@ impl Timetable {
                 lat: (*raw_location).lat as f32,
                 lon: (*raw_location).lon as f32,
                 transfer_time: (*raw_location).transfer_time,
+                parent_idx: (*raw_location).parent.try_into().unwrap(),
                 footpaths: std::slice::from_raw_parts((*raw_location).footpaths, (*raw_location).n_footpaths.try_into().unwrap()).iter().map(|f| Footpath{
                     target_location_idx: f.target_location_idx().try_into().unwrap(),
                     duration: f.duration()
@@ -189,6 +190,7 @@ pub struct Location<'a> {
     pub lat: f32,
     pub lon: f32,
     pub transfer_time: u16,
+    pub parent_idx: usize,
     pub footpaths: Vec<Footpath>
 }
 
