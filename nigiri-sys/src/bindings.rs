@@ -699,8 +699,9 @@ pub struct nigiri_event_change {
     pub day_idx: u16,
     pub stop_idx: u16,
     pub is_departure: bool,
+    pub location_idx: u32,
+    pub in_out_allowed: i16,
     pub delay: i16,
-    pub cancelled: bool,
 }
 #[test]
 fn bindgen_test_layout_nigiri_event_change() {
@@ -708,7 +709,7 @@ fn bindgen_test_layout_nigiri_event_change() {
     let ptr = UNINIT.as_ptr();
     assert_eq!(
         ::std::mem::size_of::<nigiri_event_change>(),
-        16usize,
+        20usize,
         concat!("Size of: ", stringify!(nigiri_event_change))
     );
     assert_eq!(
@@ -757,23 +758,33 @@ fn bindgen_test_layout_nigiri_event_change() {
         )
     );
     assert_eq!(
-        unsafe { ::std::ptr::addr_of!((*ptr).delay) as usize - ptr as usize },
-        10usize,
-        concat!(
-            "Offset of field: ",
-            stringify!(nigiri_event_change),
-            "::",
-            stringify!(delay)
-        )
-    );
-    assert_eq!(
-        unsafe { ::std::ptr::addr_of!((*ptr).cancelled) as usize - ptr as usize },
+        unsafe { ::std::ptr::addr_of!((*ptr).location_idx) as usize - ptr as usize },
         12usize,
         concat!(
             "Offset of field: ",
             stringify!(nigiri_event_change),
             "::",
-            stringify!(cancelled)
+            stringify!(location_idx)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).in_out_allowed) as usize - ptr as usize },
+        16usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(nigiri_event_change),
+            "::",
+            stringify!(in_out_allowed)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).delay) as usize - ptr as usize },
+        18usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(nigiri_event_change),
+            "::",
+            stringify!(delay)
         )
     );
 }
@@ -997,6 +1008,14 @@ extern "C" {
         path: *const ::std::os::raw::c_char,
         from_ts: i64,
         to_ts: i64,
+    ) -> *mut nigiri_timetable_t;
+}
+extern "C" {
+    pub fn nigiri_load_linking_stops(
+        path: *const ::std::os::raw::c_char,
+        from_ts: i64,
+        to_ts: i64,
+        link_stop_distance: ::std::os::raw::c_uint,
     ) -> *mut nigiri_timetable_t;
 }
 extern "C" {

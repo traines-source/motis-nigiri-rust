@@ -28,6 +28,10 @@ pub fn it_works() {
             let stop = t.get_location(c.to_idx);
             assert_eq!(stop.name, "Zürich Altstetten");
             assert_eq!(locations[c.to_idx].name, "Zürich Altstetten");
+            assert_eq!(c.out_allowed, false);
+        }
+        if i == 2 {
+            assert_eq!(c.in_allowed, true);
         }
         if i == 119 {
             assert_eq!(c.departure, 1440*5+7);

@@ -11,13 +11,23 @@ unsafe fn str_from_ptr<'a>(ptr: *const ::std::os::raw::c_char, len: u32) -> &'a 
 extern "C" fn nigiri_callback<F>(evt: nigiri_event_change, context: *mut c_void) where F: FnMut(EventChange) {
     unsafe {
         let closure = &mut *(context as *mut F);
+        let location_idx = match evt.location_idx.try_into().unwrap() {
+            0 => None,
+            l => Some(l)
+        };
+        let in_out_allowed = match evt.in_out_allowed {
+            0 => Some(false),
+            1 => Some(true),
+            _ => None
+        };
         closure(EventChange {
             transport_idx: evt.transport_idx.try_into().unwrap(),
             day_idx: evt.day_idx,
             stop_idx: evt.stop_idx.try_into().unwrap(),
             is_departure: evt.is_departure,
-            delay: evt.delay,
-            cancelled: evt.cancelled,
+            location_idx: location_idx,
+            in_out_allowed: in_out_allowed,
+            delay: if location_idx.is_none() && in_out_allowed.is_none() { Some(evt.delay) } else { None }
         });
     } 
 }
@@ -92,7 +102,11 @@ impl Timetable {
             Route {
                 ptr: raw_route,
                 route_idx: route_idx,
-                stops: stops.iter().map(|s| s.location_idx()).collect(),
+                stops: stops.iter().map(|s| Stop { 
+                    location_idx: s.location_idx().try_into().unwrap(),
+                    in_allowed: s.in_allowed() == 1,
+                    out_allowed: s.out_allowed() == 1
+                }).collect(),
                 clasz: (*raw_route).clasz
             }
         }
@@ -111,7 +125,7 @@ impl Timetable {
                 parent_idx: (*raw_location).parent.try_into().unwrap(),
                 footpaths: std::slice::from_raw_parts((*raw_location).footpaths, (*raw_location).n_footpaths.try_into().unwrap()).iter().map(|f| Footpath{
                     target_location_idx: f.target_location_idx().try_into().unwrap(),
-                    duration: f.duration()
+                    duration: f.duration().try_into().unwrap()
                 }).collect()       
             }
         }
@@ -179,7 +193,7 @@ impl<'a> Drop for Timetable {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Footpath {
     pub target_location_idx: usize,
-    pub duration: u32 
+    pub duration: u16 
 }
 
 #[derive(Debug)]
@@ -221,11 +235,19 @@ impl<'a> Iterator for Locations<'a> {
     }
 }
 
+
+#[derive(Debug)]
+pub struct Stop {
+    pub location_idx: usize,
+    pub in_allowed: bool,
+    pub out_allowed: bool
+}
+
 #[derive(Debug)]
 pub struct Route {
     ptr: *const nigiri_route_t,
     pub route_idx: u32,
-    pub stops: Vec<u32>,
+    pub stops: Vec<Stop>,
     pub clasz: u16,
 }
 
@@ -281,6 +303,8 @@ pub struct Connection {
 	pub to_idx: usize,
 	pub departure: i32,
 	pub arrival: i32,
+    pub in_allowed: bool,
+    pub out_allowed: bool
 }
 
 pub struct Connections<'a> {
@@ -358,10 +382,12 @@ impl<'a> Iterator for Connections<'a> {
             id: self.id,
             route_idx: transport.route_idx,
             trip_id: self.transports.i.try_into().unwrap(),
-            from_idx: self.route.as_ref().unwrap().stops[self.stop_idx].try_into().unwrap(),
-            to_idx: self.route.as_ref().unwrap().stops[self.stop_idx+1].try_into().unwrap(),
+            from_idx: self.route.as_ref().unwrap().stops[self.stop_idx].location_idx,
+            to_idx: self.route.as_ref().unwrap().stops[self.stop_idx+1].location_idx,
             departure: Connections::get_minutes_after_base(self.day_idx, transport.event_mams[self.stop_idx*2]),
-            arrival: Connections::get_minutes_after_base(self.day_idx, transport.event_mams[self.stop_idx*2+1])
+            arrival: Connections::get_minutes_after_base(self.day_idx, transport.event_mams[self.stop_idx*2+1]),
+            in_allowed: self.route.as_ref().unwrap().stops[self.stop_idx].in_allowed,
+            out_allowed: self.route.as_ref().unwrap().stops[self.stop_idx+1].out_allowed,
         };
         assert_eq!(self.get_connection_idx(self.transport_idx, self.day_idx, self.stop_idx), self.id);
         self.stop_idx += 1;
@@ -376,8 +402,9 @@ pub struct EventChange {
     pub day_idx: u16,
     pub stop_idx: u16,
     pub is_departure: bool,
-    pub delay: i16,
-    pub cancelled: bool,
+    pub location_idx: Option<usize>,
+    pub in_out_allowed: Option<bool>,
+    pub delay: Option<i16>
 }
 
 #[derive(Debug)]
