@@ -119,8 +119,8 @@ impl Timetable {
                 ptr: raw_location,
                 id: str_from_ptr((*raw_location).id, (*raw_location).id_len),
                 name: str_from_ptr((*raw_location).name, (*raw_location).name_len),
-                lat: (*raw_location).lat as f32,
-                lon: (*raw_location).lon as f32,
+                lat: (*raw_location).lat,
+                lon: (*raw_location).lon,
                 transfer_time: (*raw_location).transfer_time,
                 parent_idx: (*raw_location).parent.try_into().unwrap(),
                 footpaths: std::slice::from_raw_parts((*raw_location).footpaths, (*raw_location).n_footpaths.try_into().unwrap()).iter().map(|f| Footpath{
@@ -201,8 +201,8 @@ pub struct Location<'a> {
     ptr: *const nigiri_location_t,
     pub id: &'a str,
     pub name: &'a str,
-    pub lat: f32,
-    pub lon: f32,
+    pub lat: f64,
+    pub lon: f64,
     pub transfer_time: u16,
     pub parent_idx: usize,
     pub footpaths: Vec<Footpath>
