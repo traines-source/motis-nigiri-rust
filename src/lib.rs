@@ -64,6 +64,16 @@ impl Timetable {
         }
     }
 
+    pub fn get_routes(&self) -> Routes {
+        unsafe {
+            Routes {
+                t: self,
+                i: 0,
+                n_routes: nigiri_get_route_count(self.t).try_into().unwrap()
+            }
+        }
+    }
+
     pub fn get_transports(&self) -> Transports {
         unsafe {
             Transports {
@@ -94,11 +104,10 @@ impl Timetable {
         }
     }
 
-    pub fn get_route(&self, route_idx: u32) -> Route {
+    pub fn get_route(&self, route_idx: usize) -> Route {
         unsafe {
-            let raw_route = nigiri_get_route(self.t, route_idx);
+            let raw_route = nigiri_get_route(self.t, route_idx.try_into().unwrap());
             let stops = std::slice::from_raw_parts((*raw_route).stops, (*raw_route).n_stops.try_into().unwrap());
-            // TODO in/out_allowed
             Route {
                 ptr: raw_route,
                 route_idx: route_idx,
@@ -136,7 +145,7 @@ impl Timetable {
             let transport = nigiri_get_transport(self.t, transport_idx.try_into().unwrap());        
             Transport {
                 ptr: transport,
-                route_idx: (*transport).route_idx,
+                route_idx: (*transport).route_idx.try_into().unwrap(),
                 event_mams: std::slice::from_raw_parts((*transport).event_mams, usize::try_from((*transport).n_event_mams).unwrap()),
                 name: str_from_ptr((*transport).name, (*transport).name_len).to_string()
             }
@@ -246,7 +255,7 @@ pub struct Stop {
 #[derive(Debug)]
 pub struct Route {
     ptr: *const nigiri_route_t,
-    pub route_idx: u32,
+    pub route_idx: usize,
     pub stops: Vec<Stop>,
     pub clasz: u16,
 }
@@ -259,10 +268,29 @@ impl Drop for Route {
     }
 }
 
+pub struct Routes<'a> {
+    t: &'a Timetable,
+    i: usize,
+    n_routes: usize
+}
+
+impl<'a> Iterator for Routes<'a> {
+    type Item = Route;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.i >= self.n_routes {
+            return None
+        }
+        let route = self.t.get_route(self.i);
+        self.i += 1;
+        Some(route)
+    }
+}
+
 #[derive(Debug)]
 pub struct Transport<'a> {
     ptr: *const nigiri_transport_t,
-    pub route_idx: u32,
+    pub route_idx: usize,
     pub event_mams: &'a [i16],
     pub name: String,
 }
@@ -297,14 +325,15 @@ impl<'a> Iterator for Transports<'a> {
 #[derive(Debug)]
 pub struct Connection {
     pub id: usize,
-	pub route_idx: u32,
+	pub route_idx: usize,
 	pub trip_id: u32,
 	pub from_idx: usize,
 	pub to_idx: usize,
 	pub departure: i32,
 	pub arrival: i32,
     pub in_allowed: bool,
-    pub out_allowed: bool
+    pub out_allowed: bool,
+    pub name: String
 }
 
 pub struct Connections<'a> {
@@ -377,7 +406,6 @@ impl<'a> Iterator for Connections<'a> {
             };
         }
         let transport = self.transport.as_ref().unwrap();
-        //TODO route
         let c = Connection {
             id: self.id,
             route_idx: transport.route_idx,
@@ -388,6 +416,7 @@ impl<'a> Iterator for Connections<'a> {
             arrival: Connections::get_minutes_after_base(self.day_idx, transport.event_mams[self.stop_idx*2+1]),
             in_allowed: self.route.as_ref().unwrap().stops[self.stop_idx].in_allowed,
             out_allowed: self.route.as_ref().unwrap().stops[self.stop_idx+1].out_allowed,
+            name: transport.name.clone()
         };
         assert_eq!(self.get_connection_idx(self.transport_idx, self.day_idx, self.stop_idx), self.id);
         self.stop_idx += 1;
