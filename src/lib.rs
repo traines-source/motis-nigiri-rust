@@ -38,9 +38,13 @@ pub struct Timetable {
 
 impl Timetable {
     pub fn load(path: &str, start_date: chrono::NaiveDate, end_date: chrono::NaiveDate) -> Timetable {
+        Self::load_linking_stops(path, start_date, end_date, 0)
+    }
+
+    pub fn load_linking_stops(path: &str, start_date: chrono::NaiveDate, end_date: chrono::NaiveDate, link_stop_distance: u16) -> Timetable {
         unsafe {
             let path = CString::new(path).unwrap();
-            let t = nigiri_load(path.as_ptr(), start_date.and_hms_opt(0, 0, 0).unwrap().timestamp(), end_date.and_hms_opt(0, 0, 0).unwrap().timestamp());
+            let t = nigiri_load_linking_stops(path.as_ptr(), start_date.and_hms_opt(0, 0, 0).unwrap().timestamp(), end_date.and_hms_opt(0, 0, 0).unwrap().timestamp(), link_stop_distance.try_into().unwrap());
             Timetable {
                 t: t
             }
