@@ -12,5 +12,6 @@ fn main() {
         println!("cargo:rustc-link-search=all={}", Path::new(&build_dir).join(line).parent().expect("no parent").display());
         println!("cargo:rustc-link-lib={}", re.replace(line, "${1}"));
     }
-    println!("cargo:rustc-link-lib=stdc++");
+    println!("cargo:rustc-link-lib=c++");
+
 }

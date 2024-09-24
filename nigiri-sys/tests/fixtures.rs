@@ -78,6 +78,15 @@ pub fn it_works() {
         let gtfsrt_path = CString::new("./tests/fixtures/2024-01-02T01_48_02+01_00.gtfsrt").unwrap();
         nigiri_update_with_rt(t, gtfsrt_path.as_ptr(), Some(my_callback), null_mut());
         nigiri_update_with_rt(t, gtfsrt_path.as_ptr(), Some(my_callback), null_mut());
+
+        let j = nigiri_get_journeys(t, 11, 69, 1704153600, false);
+        let journeys = std::slice::from_raw_parts((*j).journeys, (*j).n_journeys.try_into().unwrap());
+        assert_eq!(journeys.len(), 1);
+        let legs = std::slice::from_raw_parts(journeys[0].legs, journeys[0].n_legs.try_into().unwrap());
+        assert_eq!(legs.len(), 3);
+        assert_eq!(legs[0].duration, 58);
+
+        nigiri_destroy_journeys(j);
         nigiri_destroy(t);
     }
 }
