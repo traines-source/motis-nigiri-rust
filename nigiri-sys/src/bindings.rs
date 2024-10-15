@@ -521,8 +521,9 @@ pub struct nigiri_event_change {
     pub day_idx: u16,
     pub stop_idx: u16,
     pub is_departure: bool,
-    pub location_idx: u32,
-    pub in_out_allowed: i16,
+    pub stop_change: bool,
+    pub stop_location_idx: u32,
+    pub stop_in_out_allowed: bool,
     pub delay: i16,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
@@ -537,10 +538,12 @@ const _: () = {
         [::std::mem::offset_of!(nigiri_event_change, stop_idx) - 6usize];
     ["Offset of field: nigiri_event_change::is_departure"]
         [::std::mem::offset_of!(nigiri_event_change, is_departure) - 8usize];
-    ["Offset of field: nigiri_event_change::location_idx"]
-        [::std::mem::offset_of!(nigiri_event_change, location_idx) - 12usize];
-    ["Offset of field: nigiri_event_change::in_out_allowed"]
-        [::std::mem::offset_of!(nigiri_event_change, in_out_allowed) - 16usize];
+    ["Offset of field: nigiri_event_change::stop_change"]
+        [::std::mem::offset_of!(nigiri_event_change, stop_change) - 9usize];
+    ["Offset of field: nigiri_event_change::stop_location_idx"]
+        [::std::mem::offset_of!(nigiri_event_change, stop_location_idx) - 12usize];
+    ["Offset of field: nigiri_event_change::stop_in_out_allowed"]
+        [::std::mem::offset_of!(nigiri_event_change, stop_in_out_allowed) - 16usize];
     ["Offset of field: nigiri_event_change::delay"]
         [::std::mem::offset_of!(nigiri_event_change, delay) - 18usize];
 };

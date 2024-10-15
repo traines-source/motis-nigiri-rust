@@ -11,15 +11,17 @@ unsafe fn str_from_ptr<'a>(ptr: *const ::std::os::raw::c_char, len: u32) -> &'a 
 extern "C" fn nigiri_callback<F>(evt: nigiri_event_change, context: *mut c_void) where F: FnMut(EventChange) {
     unsafe {
         let closure = &mut *(context as *mut F);
-        let location_idx = match evt.location_idx.try_into().unwrap() {
-            0 => None,
-            l => Some(l)
-        };
-        let in_out_allowed = match evt.in_out_allowed {
-            0 => Some(false),
-            1 => Some(true),
-            _ => None
-        };
+        let mut location_idx = None;
+        let mut in_out_allowed = None;
+        let mut delay = Some(evt.delay);
+        if evt.stop_change {
+            location_idx = match evt.stop_location_idx {
+                u32::MAX => None,
+                l => Some(l.try_into().unwrap())
+            };
+            in_out_allowed = Some(evt.stop_in_out_allowed);
+            delay = None;
+        }
         closure(EventChange {
             transport_idx: evt.transport_idx.try_into().unwrap(),
             day_idx: evt.day_idx,
@@ -27,7 +29,7 @@ extern "C" fn nigiri_callback<F>(evt: nigiri_event_change, context: *mut c_void)
             is_departure: evt.is_departure,
             location_idx: location_idx,
             in_out_allowed: in_out_allowed,
-            delay: if location_idx.is_none() && in_out_allowed.is_none() { Some(evt.delay) } else { None }
+            delay: delay
         });
     } 
 }
